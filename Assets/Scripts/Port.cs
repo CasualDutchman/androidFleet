@@ -4,8 +4,12 @@ using UnityEngine;
 
 public class Port : MonoBehaviour {
 
+    public string portname;
+    public float reputation;
     public Ports ownPort;
     public Transform[] connectedPort;
+
+    public Mission[] missions;
 
     [ContextMenu("Test")]
     public void Test() {

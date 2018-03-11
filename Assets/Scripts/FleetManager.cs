@@ -4,9 +4,61 @@ using UnityEngine;
 
 public class FleetManager : MonoBehaviour {
 
-    public List<Ship> ships = new List<Ship>();
+    public Sprite shippy;
 
-	public void Save() {
+    public List<Ship> ships = new List<Ship>();
+    List<Transform> shipGraphics = new List<Transform>();
+
+    float timer;
+
+    void Update() {
+        timer += Time.deltaTime;
+        if (timer >= 1) {
+            for (int i = 0; i < ships.Count; i++) {
+                Ship ship = ships[i];
+                Transform shipTransform = shipGraphics[i];
+
+                ship.currentTime.RemoveSecond();
+
+                float percentDone = ship.currentTime.Percentage(ship.maxTime);
+                Port origin = RouteManager.instance.GetPort(ship.originPort);
+                Port endPoint = RouteManager.instance.GetPort(ship.destinationPort);
+
+                Vector3 newPos = Vector3.Lerp(origin.transform.position, endPoint.transform.position, 1f - percentDone);
+                newPos.z = -0.02f;
+                shipTransform.position = newPos;
+            }
+            timer -= 1;
+        }
+    }
+
+    void LoadGraphics() {
+        foreach (Ship ship in ships) {
+
+            GameObject currentGraphic = new GameObject();
+            currentGraphic.name = ship.name;
+
+            Port p = RouteManager.instance.GetPort(ship.originPort);
+            currentGraphic.transform.position = p.transform.position + new Vector3(0, 0, -0.01f);
+
+            if (ship.currentTime.HasTime()) {
+                float percentDone = ship.currentTime.Percentage(ship.maxTime);
+                Port origin = RouteManager.instance.GetPort(ship.originPort);
+                Port endPoint = RouteManager.instance.GetPort(ship.destinationPort);
+
+                Vector3 newPos = Vector3.Lerp(origin.transform.position, endPoint.transform.position, 1f - percentDone);
+                newPos.z = -0.02f;
+                currentGraphic.transform.position = newPos;
+            }
+
+            SpriteRenderer spriteRenderer = currentGraphic.AddComponent<SpriteRenderer>();
+            spriteRenderer.sprite = shippy;
+
+            shipGraphics.Add(currentGraphic.transform);
+        }
+    }
+
+    public void Save() {
         int i = 0;
         foreach (Ship ship in ships) {
             string s = "";
@@ -25,8 +77,26 @@ public class FleetManager : MonoBehaviour {
     }
 
     public void Load() {
-        if (!PlayerPrefs.HasKey("ShipCount"))
+        if (!PlayerPrefs.HasKey("ShipCount")) {
+            Ship ship = new Ship() {
+                type = ShipType.Schooner,
+                name = "Saint Lois",
+                maxHitPoints = 100,
+                hitPoints = 100,
+                attackDamage = 10,
+                speed = 2,
+                cargoSize = 20,
+                originPort = Ports.New_Amsterdam,
+                destinationPort = Ports.Amsterdam,
+                maxTime = new TimeScale(1, 0, 0),
+                currentTime = new TimeScale(42, 0)
+            };
+
+            ships.Add(ship);
+
+            LoadGraphics();
             return;
+        }
 
         int shipcount = PlayerPrefs.GetInt("ShipCount");
 
@@ -45,6 +115,8 @@ public class FleetManager : MonoBehaviour {
 
             ships.Add(ship);
         }
+
+        LoadGraphics();
     }
 }
 
@@ -59,4 +131,11 @@ public class Ship {
     public float attackDamage;
     public float speed;
     public int cargoSize;
+
+    //Mission related
+    public Ports originPort;
+    public Ports destinationPort;
+    public TimeScale maxTime;
+    public TimeScale currentTime;
+    public Item[] cargo;
 }
